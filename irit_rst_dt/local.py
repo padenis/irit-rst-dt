@@ -24,13 +24,19 @@ from sklearn.linear_model import (LogisticRegression,
                                   Perceptron as SkPerceptron,
                                   PassiveAggressiveClassifier as
                                   SkPassiveAggressiveClassifier)
+from attelo.learning.perceptron import (PerceptronArgs,
+                                        Perceptron,
+                                        PassiveAggressive,
+                                        StructuredPerceptron,
+                                        StructuredPassiveAggressive)
+from numpy import inf
+
 from .attelo_cfg import (combined_key,
                          Settings,
                          KeyedDecoder,
                          IntraFlag)
 
 # PATHS
-
 LOCAL_TMP = 'TMP'
 """Things we may want to hold on to (eg. for weeks), but could
 live with throwing away as needed"""
@@ -39,8 +45,9 @@ SNAPSHOTS = 'SNAPSHOTS'
 """Results over time we are making a point of saving"""
 
 # TRAINING_CORPUS = 'tiny'
-# TRAINING_CORPUS = 'corpus/RSTtrees-WSJ-main-1.0/TRAINING'
+#TRAINING_CORPUS = 'corpus/RSTtrees-WSJ-main-1.0/TRAINING'
 TRAINING_CORPUS = 'corpus/RSTtrees-WSJ-double-1.0'
+# TRAINING_CORPUS =  'corpus/My-tiny-RST-DT'
 """Corpora for use in building/training models and running our
 incremental experiments. Later on we should consider using the
 held-out test data for something, but let's make a point of
@@ -77,6 +84,28 @@ def decoder_mst(settings):
     return MstDecoder(MstRootStrategy.fake_root,
                       use_prob)
 
+
+LOCAL_PERC_ARGS = PerceptronArgs(iterations=10,
+                                 averaging=True,
+                                 use_prob=False,
+                                 aggressiveness=inf)
+
+LOCAL_PA_ARGS = PerceptronArgs(iterations=10,
+                                 averaging=True,
+                                 use_prob=False,
+                                 aggressiveness=inf)
+
+STRUCT_PERC_ARGS = PerceptronArgs(iterations=50,
+                                 averaging=True,
+                                 use_prob=False,
+                                 aggressiveness=inf)
+
+STRUCT_PA_ARGS = PerceptronArgs(iterations=50,
+                                 averaging=True,
+                                 use_prob=False,
+                                 aggressiveness=inf) 
+
+
 LEARNER_MAXENT = Keyed('maxent', LogisticRegression())
 
 _LOCAL_LEARNERS = [
@@ -84,10 +113,15 @@ _LOCAL_LEARNERS = [
                   relate=None),
     LearnerConfig(attach=LEARNER_MAXENT,
                   relate=None),
-#    LearnerConfig(attach=Keyed('sk-perceptron', SkPerceptron()),
-#                  relate=LEARNER_MAXENT),
-#    LearnerConfig(attach=Keyed('sk-pasagg', SkPassiveAggressiveClassifier()),
-#                  relate=LEARNER_MAXENT),
+    LearnerConfig(attach=Keyed('perc', Perceptron( LOCAL_PERC_ARGS )),
+                  relate=LEARNER_MAXENT),
+    LearnerConfig(attach=Keyed('sk-perceptron', SkPerceptron()),
+                  relate=LEARNER_MAXENT),
+    LearnerConfig(attach=Keyed('pa', PassiveAggressive( LOCAL_PA_ARGS )),
+                  relate=LEARNER_MAXENT),
+    LearnerConfig(attach=Keyed('sk-pasagg', SkPassiveAggressiveClassifier()),
+                  relate=LEARNER_MAXENT),
+
 ]
 """Straightforward attelo learner algorithms to try
 
@@ -96,8 +130,12 @@ between different configurations of your learners.
 """
 
 _STRUCTURED_LEARNERS = [
-    # lambda d: LearnerConfig(attach=Keyed('pd-perceptron', Perceptron(d)),
-    #                        relate=_MAXENT),
+    lambda d: LearnerConfig(attach=Keyed('struct-perc',
+                                        StructuredPerceptron(d,STRUCT_PERC_ARGS)),
+                           relate=LEARNER_MAXENT),
+    lambda d: LearnerConfig(attach=Keyed('struct-pa',
+                                        StructuredPassiveAggressive(d,STRUCT_PA_ARGS)),
+                           relate=LEARNER_MAXENT)
 ]
 
 """Attelo learners that take decoders as arguments.
